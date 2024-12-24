@@ -1,0 +1,8 @@
+.devbox
+.venv
+__pycache__
+.envrc.local
+devbox.lock
+volumes/
+.DS_Store
+.vscode

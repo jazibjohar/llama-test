@@ -1,0 +1,19 @@
+[tool.poetry]
+name = "llama-test"
+version = "0.1.0"
+description = ""
+authors = ["Syed Muhammad Baligh ur Rehman <smbaligh@live.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.12"
+llama-index-core = "^0.12.10.post1"
+llama-index-vector-stores-milvus = "^0.5.0"
+llama-index-embeddings-openai = "^0.3.1"
+llama-index-llms-openai = "^0.3.13"
+llama-index-readers-file = "^0.4.2"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
