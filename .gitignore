@@ -1,0 +1,5 @@
+.devbox
+.venv
+__pycache__
+.envrc.local
+devbox.lock
