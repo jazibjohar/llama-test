@@ -9,7 +9,7 @@ from llama_index.llms.gemini import Gemini
 import os
 
 
-text_splitter = SentenceSplitter(chunk_size=512, chunk_overlap=10)
+text_splitter = SentenceSplitter(chunk_size=1024, chunk_overlap=10)
 
 
 documents = SimpleDirectoryReader("data", recursive=True).load_data()
@@ -39,7 +39,5 @@ index = VectorStoreIndex.from_documents(documents)
 # http://10.0.50.26:11434/api/chat
 
 query_engine = index.as_query_engine()
-response = query_engine.query(
-    """What is the name of Senior DevOps Engineer? And what they said in the meeting"""
-)
+response = query_engine.query("What did James Turner say about the migration project?")
 print(response)
