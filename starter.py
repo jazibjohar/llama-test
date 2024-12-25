@@ -1,4 +1,5 @@
 from llama_index.core import VectorStoreIndex, SimpleDirectoryReader, Settings
+from llama_index.vector_stores.milvus import MilvusVectorStore
 
 # from llama_index.llms.ollama import Ollama
 # from llama_index.embeddings.huggingface import HuggingFaceEmbedding
@@ -8,36 +9,63 @@ from llama_index.llms.gemini import Gemini
 
 import os
 
+# Add Milvus connection settings
+from pymilvus import connections
 
-text_splitter = SentenceSplitter(chunk_size=1024, chunk_overlap=10)
-
-
-documents = SimpleDirectoryReader("data", recursive=True).load_data()
-
-
-# Settings.llm = Ollama(
-#     model="llama3.2:latest", request_timeout=60.0, base_url="http://10.0.50.26:11434"
-# )
-Settings.llm = Gemini(
-    model="models/gemini-1.5-flash",
-    api_key=os.getenv("GOOGLE_API_KEY"),
-    # api_key="some key",  # uses GOOGLE_API_KEY env var by default
-)
+connections.connect(alias="default", host="localhost", port="19530")
 
 
-model_name = "models/text-embedding-004"
+def get_milvus_vectorstore(project_id):
+    return MilvusVectorStore(
+        uri="http://localhost:19530",
+        collection_name=f"document_vectors_{project_id}",
+        dim=768,
+    )
 
-Settings.embed_model = GeminiEmbedding(
-    model_name=model_name, api_key=os.getenv("GOOGLE_API_KEY")
-)
 
-Settings.text_splitter = text_splitter
+def populate_vector_store(project_id):
+    # Setup components
+    text_splitter = SentenceSplitter(chunk_size=1024, chunk_overlap=10)
+
+    # Configure settings
+    Settings.llm = Gemini(
+        model="models/gemini-1.5-flash",
+        api_key=os.getenv("GOOGLE_API_KEY"),
+    )
+
+    Settings.embed_model = GeminiEmbedding(
+        model_name="models/text-embedding-004", api_key=os.getenv("GOOGLE_API_KEY")
+    )
+
+    Settings.text_splitter = text_splitter
+
+    # Load and index documents
+    documents = SimpleDirectoryReader("data", recursive=True).load_data()
+    vector_store = get_milvus_vectorstore(project_id)
+    index = VectorStoreIndex.from_documents(documents, vector_store=vector_store)
+    return index
 
 
-index = VectorStoreIndex.from_documents(documents)
+def query_vector_store(project_id, query_text):
+    vector_store = get_milvus_vectorstore(project_id)
+    # Create index with the existing vector store
+    index = VectorStoreIndex.from_vector_store(vector_store)
+    query_engine = index.as_query_engine()
+    response = query_engine.query(query_text)
+    return response
 
-# http://10.0.50.26:11434/api/chat
 
-query_engine = index.as_query_engine()
-response = query_engine.query("What did James Turner say about the migration project?")
-print(response)
+def sync_vector_store(project_id):
+    vector_store = populate_vector_store(project_id)
+    # Add your synchronization logic here
+    pass
+
+
+if __name__ == "__main__":
+    # Example usage
+    project_id = "demo_project_01"
+    index = populate_vector_store(project_id)
+    response = query_vector_store(
+        project_id, "What did James Turner say about the migration project?"
+    )
+    print(response)
