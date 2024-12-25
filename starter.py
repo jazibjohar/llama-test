@@ -9,11 +9,6 @@ from llama_index.llms.gemini import Gemini
 
 import os
 
-# Add Milvus connection settings
-from pymilvus import connections
-
-connections.connect(alias="default", host="localhost", port="19530")
-
 
 def get_milvus_vectorstore(project_id):
     return MilvusVectorStore(
