@@ -9,12 +9,26 @@ from llama_index.llms.gemini import Gemini
 
 import os
 
+MILVUS_CONFIG = {"uri": "http://localhost:19530", "dim": 768}
+
+MODEL_CONFIG = {
+    "llm_model": "models/gemini-1.5-flash",
+    "embedding_model": "models/text-embedding-004",
+}
+
+
+def get_google_api_key():
+    api_key = os.getenv("GOOGLE_API_KEY")
+    if not api_key:
+        raise ValueError("GOOGLE_API_KEY environment variable is not set")
+    return api_key
+
 
 def get_milvus_vectorstore(project_id):
     return MilvusVectorStore(
-        uri="http://localhost:19530",
+        uri=MILVUS_CONFIG["uri"],
         collection_name=f"document_vectors_{project_id}",
-        dim=768,
+        dim=MILVUS_CONFIG["dim"],
     )
 
 
@@ -22,14 +36,16 @@ def populate_vector_store(project_id):
     # Setup components
     text_splitter = SentenceSplitter(chunk_size=1024, chunk_overlap=10)
 
+    api_key = get_google_api_key()
+
     # Configure settings
     Settings.llm = Gemini(
-        model="models/gemini-1.5-flash",
-        api_key=os.getenv("GOOGLE_API_KEY"),
+        model=MODEL_CONFIG["llm_model"],
+        api_key=api_key,
     )
 
     Settings.embed_model = GeminiEmbedding(
-        model_name="models/text-embedding-004", api_key=os.getenv("GOOGLE_API_KEY")
+        model_name=MODEL_CONFIG["embedding_model"], api_key=api_key
     )
 
     Settings.text_splitter = text_splitter
