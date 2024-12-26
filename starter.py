@@ -8,6 +8,7 @@ from llama_index.vector_stores.milvus import MilvusVectorStore
 from llama_index.core.node_parser import SentenceSplitter
 from llama_index.embeddings.gemini import GeminiEmbedding
 from llama_index.llms.gemini import Gemini
+from llama_index.readers.gcs import GCSReader
 import os
 
 
@@ -63,36 +64,56 @@ class VectorStoreManager:
             overwrite=False,
         )
 
-    def populate_vector_store(self, project_id):
+    def populate_vector_store_local(self, project_id):
+        """Populates vector store from local directory."""
         try:
             documents = SimpleDirectoryReader("data", recursive=True).load_data()
-            print(f"Found {len(documents)} documents")
-
-            vector_store = self._get_milvus_vectorstore(project_id)
-
-            if not documents:
-                raise ValueError("No documents were loaded from the data directory")
-
-            # Create storage context first
-            storage_context = StorageContext.from_defaults(vector_store=vector_store)
-
-            index = VectorStoreIndex.from_documents(
-                documents,
-                storage_context=storage_context,
-                vector_store=vector_store,
-                show_progress=False,
-                debug=False,
-            )
-
-            # Verify index creation
-            print(f"Index created with {len(index.docstore.docs)} documents")
-
-            # Ensure data is persisted
-            storage_context.persist()
-            return index
+            return self._create_vector_store(project_id, documents)
         except Exception as e:
-            print(f"Error in populate_vector_store: {str(e)}")
+            print(f"Error in populate_vector_store_local: {str(e)}")
             raise
+
+    def populate_vector_store_cloud_storage(self, project_id, bucket_name):
+        """Populates vector store from Google Cloud Storage bucket folder."""
+        try:
+            reader = GCSReader(
+                bucket=bucket_name,
+                prefix=project_id+"/",
+                service_account_key_path="./service-account-key.json",
+                recursive=True,
+                file_metadata=lambda x: {}
+            )   
+            resources = reader.list_resources()         
+            for resource in resources:
+                print(resource)
+
+            documents = reader.load_data()
+            print(f"\nLoaded {len(documents)} documents")
+            return self._create_vector_store(project_id, documents)
+        except Exception as e:
+            print(f"Error in populate_vector_store_cloud_storage: {str(e)}")
+            raise
+
+    def _create_vector_store(self, project_id, documents):
+        """Helper method for vector store creation logic."""
+        if not documents:
+            raise ValueError("No documents were loaded")
+
+        print(f"Found {len(documents)} documents")
+        vector_store = self._get_milvus_vectorstore(project_id)
+        storage_context = StorageContext.from_defaults(vector_store=vector_store)
+
+        index = VectorStoreIndex.from_documents(
+            documents,
+            storage_context=storage_context,
+            vector_store=vector_store,
+            show_progress=False,
+            debug=False,
+        )
+
+        print(f"Index created with {len(index.docstore.docs)} documents")
+        storage_context.persist()
+        return index
 
     def query_vector_store(self, project_id, query_text):
         try:
@@ -135,9 +156,12 @@ if __name__ == "__main__":
     print(f"Project ID: {project_id}")
     # Add debug prints
     try:
-        manager.populate_vector_store(project_id)
+        manager.populate_vector_store_cloud_storage(
+            project_id, "rag_test_bucket_baligh"
+        )
         response = manager.query_vector_store(
-            project_id, "List all blockers and action items from standup happened on December 26, 2024"
+            project_id,
+            "List all blockers and action items from standup happened on December 26, 2024",
         )
 
         print(response)

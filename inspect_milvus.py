@@ -12,18 +12,16 @@ for collection_name in collections:
     print(f"\n{'='*50}")
     print(f"Collection: {collection_name}")
     collection = Collection(collection_name)
-    
+
     # Print basic info
     print(f"Schema:")
     print(collection.schema)
     print(f"Number of entities: {collection.num_entities}")
-    
+
     # Query some random vectors
     try:
         results = collection.query(
-            expr="",  # empty expression means "match all"
-            output_fields=["*"],
-            limit=2
+            expr="", output_fields=["*"], limit=2  # empty expression means "match all"
         )
         print(f"\nSample records (2):", results)
     except Exception as e:

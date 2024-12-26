@@ -4,3 +4,4 @@ __pycache__
 .envrc.local
 devbox.lock
 volumes/
+service-account-key.json
