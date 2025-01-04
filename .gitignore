@@ -5,3 +5,5 @@ __pycache__
 devbox.lock
 volumes/
 service-account-key.json
+.DS_Store
+storage/

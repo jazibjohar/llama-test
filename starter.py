@@ -120,24 +120,33 @@ class VectorStoreManager:
             vector_store = self._get_milvus_vectorstore(project_id)
             index = VectorStoreIndex.from_vector_store(vector_store)
 
+            # Define system prompt with instructions
+            system_prompt = """You are an AI assistant analyzing meeting transcripts and documents. 
+            When responding:
+            1. Be concise and direct
+            2. Format lists with bullet points
+            3. Clearly separate blockers and action items
+            4. Include relevant dates when available
+            5. Only include information that is explicitly mentioned in the source documents
+            
+            Respond based on the context provided."""
+
             query_engine = index.as_query_engine(
-                similarity_top_k=5, response_mode="tree_summarize"
+                similarity_top_k=5,
+                response_mode="tree_summarize",
+                streaming=True,
+                system_prompt=system_prompt
             )
 
             response = query_engine.query(query_text)
 
-            if not response or not str(response).strip():
+            if not response:
                 print("Warning: Empty response received from query engine")
 
             return response
         except Exception as e:
             print(f"Error in query_vector_store: {str(e)}")
             raise
-
-    def sync_vector_store(self, project_id):
-        vector_store = self.populate_vector_store(project_id)
-        # Add your synchronization logic here
-        pass
 
 
 if __name__ == "__main__":
