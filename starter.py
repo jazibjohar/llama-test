@@ -13,7 +13,7 @@ import uuid
 
 
 class VectorStoreManager:
-    MILVUS_CONFIG = {"uri": "http://localhost:19530", "dim": 1536}
+    MILVUS_CONFIG = {"uri": "http://localhost:19530", "dim": 3072}
 
     def __init__(self, llm_model, embedding_model, api_key=None):
         """
@@ -124,22 +124,23 @@ class VectorStoreManager:
                 similarity_top_k=5, response_mode="tree_summarize"
             )
 
-            response = query_engine.query(query_text)
+            query_response = query_engine.query(query_text)
 
-            if not response or not str(response).strip():
+            if not query_response or not str(query_response).strip():
                 print("Warning: Empty response received from query engine")
 
-            return response
+            return query_response
         except (ConnectionError, ValueError) as e:
             print(f"Error querying vector store: {str(e)}")
             raise
+
 
 
 if __name__ == "__main__":
     # Example usage with OpenAI models
     MODEL_CONFIG = {
         "llm_model": "gpt-4-turbo-preview",
-        "embedding_model": "text-embedding-3-small",
+        "embedding_model": "text-embedding-3-large",
     }
 
     manager = VectorStoreManager(
@@ -148,11 +149,14 @@ if __name__ == "__main__":
     )
 
     # Change variable name to avoid shadowing
-    test_collection_id = str(uuid.uuid4())
+    test_collection_id = "my_collection"
     print(f"Collection Identifier: {test_collection_id}")
+    
+    populate_vector_store = False
 
     try:
-        manager.populate_vector_store_cloud_storage(test_collection_id)
+        if populate_vector_store:
+            manager.populate_vector_store_cloud_storage(test_collection_id)
         response = manager.query_vector_store(
             test_collection_id,
             "Summarize the document",
