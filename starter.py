@@ -5,16 +5,15 @@ from llama_index.core import (
     Document,
 )
 from llama_index.vector_stores.milvus import MilvusVectorStore
-from llama_index.core.node_parser import SentenceSplitter
 from llama_index.embeddings.openai import OpenAIEmbedding
 from llama_index.llms.openai import OpenAI
 import os
-import uuid
 import pandas as pd
 import glob
 import logging
 from llama_index.core.llms import ChatMessage
-from llama_index.embeddings.huggingface import HuggingFaceEmbedding
+from llama_index.core.callbacks import CallbackManager, TokenCountingHandler
+import tiktoken
 
 # Set logging configuration at the top of the file
 logging.basicConfig(
@@ -27,6 +26,11 @@ os.environ["GRPC_FORK_SUPPORT_ENABLED"] = "1"
 os.environ["GRPC_ENABLE_FORK_SUPPORT"] = "1"
 os.environ["GRPC_POLL_STRATEGY"] = "poll"
 
+# Add this before initializing the VectorStoreManager
+token_counter = TokenCountingHandler(
+    tokenizer=tiktoken.encoding_for_model("gpt-4-turbo-preview").encode
+)
+callback_manager = CallbackManager([token_counter])
 
 class VectorStoreManager:
     MILVUS_CONFIG = {
@@ -49,6 +53,7 @@ class VectorStoreManager:
     def _initialize_settings(self):
         Settings.llm = self.llm
         Settings.embed_model = self.embed_model
+        Settings.callback_manager = callback_manager
         
     # IP, COSINE and L2 are the only supported metrics
     def _get_milvus_vectorstore(self, collection_identifier):
@@ -203,6 +208,24 @@ class VectorStoreManager:
             ]
             
             unique_ids = self._generate_unique_identifiers(source_matches)
+            
+            # Calculate costs (using current OpenAI pricing)
+            gpt4_input_cost = (token_counter.prompt_llm_token_count / 1000) * 0.01  # $0.01 per 1K tokens
+            gpt4_output_cost = (token_counter.completion_llm_token_count / 1000) * 0.03  # $0.03 per 1K tokens
+            embedding_cost = (token_counter.total_embedding_token_count / 1000) * 0.00013  # $0.00013 per 1K tokens
+            total_cost = gpt4_input_cost + gpt4_output_cost + embedding_cost
+
+            # Print token usage and costs
+            print("\nToken Usage and Costs:")
+            print(f"Embedding Tokens: {token_counter.total_embedding_token_count}")
+            print(f"LLM Prompt Tokens: {token_counter.prompt_llm_token_count}")
+            print(f"LLM Completion Tokens: {token_counter.completion_llm_token_count}")
+            print(f"Total LLM Tokens: {token_counter.total_llm_token_count}")
+            print(f"\nCosts:")
+            print(f"GPT-4 Input Cost: ${gpt4_input_cost:.4f}")
+            print(f"GPT-4 Output Cost: ${gpt4_output_cost:.4f}")
+            print(f"Embedding Cost: ${embedding_cost:.4f}")
+            print(f"Total Cost: ${total_cost:.4f}\n")
             
             return query_response, source_matches, unique_ids, content_types
             
