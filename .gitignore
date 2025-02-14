@@ -6,3 +6,4 @@ devbox.lock
 volumes/
 .DS_Store
 .vscode
+storage/
