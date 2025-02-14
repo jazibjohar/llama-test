@@ -14,6 +14,7 @@ import pandas as pd
 import glob
 import logging
 from llama_index.core.llms import ChatMessage
+from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 
 # Set logging configuration at the top of the file
 logging.basicConfig(
@@ -321,19 +322,16 @@ class VectorStoreManager:
 
 
 if __name__ == "__main__":
-    # Example usage with OpenAI models
-    MODEL_CONFIG = {
-        "llm_model": "gpt-4-turbo-preview",
-        "embedding_model": "text-embedding-3-large",
-    }
-
     api_key = os.getenv("OPENAI_API_KEY")
     if not api_key:
         raise ValueError("OPENAI_API_KEY environment variable is not set")
 
     # Initialize models outside the VectorStoreManager
-    llm = OpenAI(model=MODEL_CONFIG["llm_model"], api_key=api_key)
-    embed_model = OpenAIEmbedding(model_name=MODEL_CONFIG["embedding_model"], api_key=api_key)
+    llm = OpenAI(model="gpt-4-turbo-preview", api_key=api_key)
+    embed_model = OpenAIEmbedding(
+        model="text-embedding-3-large",
+        api_key=api_key,
+    )
 
     manager = VectorStoreManager(
         llm=llm,
@@ -343,7 +341,7 @@ if __name__ == "__main__":
     # Change variable name to avoid shadowing
     TEST_COLLECTION_ID = "our_grade_8_v3"
 
-    POPULATE_VECTOR_STORE = True
+    POPULATE_VECTOR_STORE = False
 
     try:
         if POPULATE_VECTOR_STORE:
